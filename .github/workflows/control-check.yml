@@ -74,7 +74,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: cat-cave/visual-verify
-          ref: d6fd1f1ec59ea31947e128450764f835418f2995
+          ref: 2fdb0c1311e886184e0268371751699269ed737c
           path: visual-verify
 
       - name: Preflight (node >= 22 for the CDP driver)
