@@ -9,7 +9,7 @@
 #
 # Usage: source tools/env.sh   (then cargo build / cargo run)
 #        tools/with-env.sh CMD runs CMD inside the full native env.
-export RUSTUP_HOME="$HOME/.rustup"
-export CARGO_HOME="$HOME/.cargo"
-export PATH="$HOME/.cargo/bin:$PATH"
+export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
+export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+export PATH="$CARGO_HOME/bin:$PATH"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/projects/pelican-game/target}"

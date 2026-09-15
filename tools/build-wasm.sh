@@ -23,9 +23,16 @@ mv web/pkg/pelican_game_bg.wasm web/pelican_game_bg.wasm
 rm -rf web/pkg
 
 echo "== wasm-opt (binaryen) =="
-nix-shell -p binaryen --run \
-  "wasm-opt -Oz --strip-debug -o web/pelican_game_bg.opt.wasm web/pelican_game_bg.wasm \
-   && mv web/pelican_game_bg.opt.wasm web/pelican_game_bg.wasm"
+# wasm-opt from PATH when present (CI runners download the binaryen release);
+# fall back to the nix shell on workstations.
+if command -v wasm-opt >/dev/null 2>&1; then
+  wasm-opt -Oz --strip-debug -o web/pelican_game_bg.opt.wasm web/pelican_game_bg.wasm \
+    && mv web/pelican_game_bg.opt.wasm web/pelican_game_bg.wasm
+else
+  nix-shell -p binaryen --run \
+    "wasm-opt -Oz --strip-debug -o web/pelican_game_bg.opt.wasm web/pelican_game_bg.wasm \
+     && mv web/pelican_game_bg.opt.wasm web/pelican_game_bg.wasm"
+fi
 
 echo "== stage assets =="
 rm -rf web/assets

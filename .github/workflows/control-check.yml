@@ -1,0 +1,163 @@
+# The CONTROL CHECK — the gate that answers one question: does the game
+# actually render in a real browser?
+#
+# WHY THIS EXISTS (2026-09-15): pelican.catcave.dev shipped "proven" while
+# visually broken — a build-host absolute path baked into the wasm 404'd
+# every asset at runtime and the page was a dark void: no title text, no
+# rider, nothing. Every deploy check we had passed anyway. "It launches with
+# no error" is NOT evidence. THIS GATE WOULD HAVE CAUGHT THAT BUG, twice
+# over:
+#   - --fail-on-http-4xx: the 12 build-host-path asset 404s are failures.
+#   - --canvas-stats: the broken title screen measured 7 distinct colors in
+#     the canvas (a void); the real one measures 73. The threshold (40)
+#     fails the void and passes the game with margin on both sides.
+# Sabotage proof (broken build rebuilt from the pre-fix commit, same check):
+# exit 1 with the void screenshot + the 404 list — evidence in the vault,
+# agent-ops/proofs/pelican-20260915/sabotage-proof-*.
+#
+# The tool is cat-cave/visual-verify (public; pinned by commit below — bump
+# deliberately). Chromium comes from its provision.sh ladder: the runner
+# containers have no chromium and no nix but share one podman socket, so the
+# sibling-container leg (zenika/alpine-chrome, SwiftShader WebGL2) serves
+# the whole fleet. Toolchain caches live under /runner (persistent bind
+# mount; the job workspace is cleaned between runs).
+name: control check
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "assets/**"
+      - "web/**"
+      - "tools/build-wasm.sh"
+      - "tools/env.sh"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/control-check.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "assets/**"
+      - "web/**"
+      - "tools/build-wasm.sh"
+      - "tools/env.sh"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/control-check.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: control-check-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    name: control check / wasm renders in a browser
+    runs-on: [cat-cave, linux-x64]
+    # t133 caps PR lanes at 20; this lane includes the wasm release build.
+    # 48-core runners make the cold build minutes; warm caches make the
+    # whole lane minutes. 30 = cold-build headroom.
+    timeout-minutes: 30
+    env:
+      CACHE: /runner/vv-cache/pelican-game
+      RUSTUP_HOME: /runner/vv-cache/pelican-game/rustup
+      CARGO_HOME: /runner/vv-cache/pelican-game/cargo
+      CARGO_TARGET_DIR: /runner/vv-cache/pelican-game/target
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check out the control-check tool (public repo, pinned)
+        uses: actions/checkout@v6
+        with:
+          repository: cat-cave/visual-verify
+          ref: d6fd1f1ec59ea31947e128450764f835418f2995
+          path: visual-verify
+
+      - name: Preflight (node >= 22 for the CDP driver)
+        run: |
+          set -euo pipefail
+          node --version
+          node -e 'process.exit(parseInt(process.versions.node) >= 22 ? 0 : 1)' \
+            || { echo "node >= 22 required (global WebSocket for CDP)" >&2; exit 1; }
+          mkdir -p "$CACHE/bin" "$CARGO_HOME" "$RUSTUP_HOME" "$CARGO_TARGET_DIR"
+
+      - name: Rust toolchain (1.96.1 + wasm32-unknown-unknown, cached)
+        run: |
+          set -euo pipefail
+          export PATH="$CARGO_HOME/bin:$PATH"
+          if [ ! -x "$CARGO_HOME/bin/cargo" ]; then
+            curl -fsS https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.96.1 --profile minimal
+          fi
+          rustup target add wasm32-unknown-unknown
+          cargo --version && rustc --version
+
+      - name: "wasm-bindgen-cli + wasm-opt (pinned to Cargo.lock, wasm-bindgen 0.2.128)"
+        run: |
+          set -euo pipefail
+          if [ ! -x "$CACHE/bin/wasm-bindgen" ]; then
+            curl -fsSL https://github.com/rustwasm/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz \
+              | tar xz --strip-components=1 -C "$CACHE/bin" --wildcards '*/wasm-bindgen'
+          fi
+          if [ ! -x "$CACHE/bin/wasm-opt" ]; then
+            curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_121/binaryen-version_121-x86_64-linux.tar.gz \
+              | tar xz --strip-components=1 -C "$CACHE/bin" --wildcards '*/wasm-opt'
+          fi
+          "$CACHE/bin/wasm-bindgen" --version
+          "$CACHE/bin/wasm-opt" --version
+
+      - name: Build the wasm artifact (web/)
+        run: |
+          set -euo pipefail
+          export PATH="$CARGO_HOME/bin:$CACHE/bin:$PATH"
+          bash tools/build-wasm.sh
+
+      - name: Provision chromium (PATH -> nix -> shared-podman container leg)
+        run: |
+          set -euo pipefail
+          eval "$(visual-verify/provision.sh)"
+          echo "chromium leg: ${CHROMIUM_BIN:-container via $VV_CONNECT}"
+          {
+            echo "VV_CONNECT=${VV_CONNECT:-}"
+            echo "CHROMIUM_BIN=${CHROMIUM_BIN:-}"
+            echo "VV_CONTAINER_NAME=${VV_CONTAINER_NAME:-}"
+          } >> "$GITHUB_ENV"
+
+      - name: Control check — the game must render, not just launch
+        run: |
+          set -euo pipefail
+          CONNECT_ARGS=()
+          if [ -n "${VV_CONNECT:-}" ]; then CONNECT_ARGS=(--connect "$VV_CONNECT"); fi
+          node visual-verify/visual-verify.mjs "${CONNECT_ARGS[@]}" \
+            --serve-dir web/ \
+            --ready-js "document.title === 'pelican-ready'" \
+            --settle-ms 9000 --timeout-ms 120000 \
+            --expect-title 'pelican-ready' \
+            --expect-selector 'canvas#gamecanvas' \
+            --canvas-stats 'canvas#gamecanvas:40:92' \
+            --fail-on-http-4xx \
+            --allow-http-4xx '\.meta$' \
+            --allow-http-4xx 'favicon\.ico$' \
+            --out vv-artifacts
+          # Gates: zero console errors (incl. Bevy's %cERROR-styled logs),
+          # zero failed requests (.meta/favicon probes excepted — they 404 in
+          # production too), the game signals readiness, and the canvas
+          # actually DREW the title screen: >= 40 distinct colors in the
+          # canvas rect. The pre-fix void measured 7; the real title screen
+          # measures 73.
+
+      - name: Stop the chromium container (container leg only)
+        if: always() && env.VV_CONTAINER_NAME != ''
+        run: docker rm -f "$VV_CONTAINER_NAME" >/dev/null 2>&1 || true
+
+      - name: Upload the screenshot of record (part of the PR record)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-check-${{ github.sha }}
+          path: vv-artifacts/
+          retention-days: 30
+          if-no-files-found: warn
