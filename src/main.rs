@@ -62,6 +62,10 @@ fn simtest_system(
 }
 
 fn main() {
+    #[cfg(target_family = "wasm")]
+    console_error_panic_hook::set_once();
+    #[cfg(target_family = "wasm")]
+    web_sys::console::log_1(&"pelican-game: main() entered".into());
     let snap = parse_snap();
     let simtest = std::env::args().any(|a| a == "--simtest");
     let (w, h): (u32, u32) = if snap.is_some() { (640, 360) } else { (960, 540) };

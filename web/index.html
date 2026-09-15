@@ -41,6 +41,20 @@
   <p class="kicker" id="loadmsg">CALIBRATING THE BICYCLES…</p>
 </div>
 <script>
+  // debug bridge: surface wasm console output via title (headless CI aid)
+  (function () {
+    const orig = document.title;
+    let n = 0;
+    ['log', 'error', 'warn', 'info'].forEach((k) => {
+      const f = console[k].bind(console);
+      console[k] = (...a) => {
+        if (n < 6) { n++; if (document.title === orig || document.title.indexOf('LOG:') === 0) document.title = 'LOG:' + String(a[0]).slice(0, 120); }
+        f(...a);
+      };
+    });
+  })();
+</script>
+<script>
   // the sond plane's tune: the 132 BPM klezmer loop derived from the fixture
   // artifact. Starts on the first user gesture (browser autoplay policy).
   const audio = new Audio('assets/audio/pelican-tune-loop.ogg');

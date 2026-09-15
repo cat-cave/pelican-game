@@ -25,6 +25,7 @@ nix-shell -p binaryen --run \
    && mv web/pelican_game_bg.opt.wasm web/pelican_game_bg.wasm"
 
 echo "== stage assets =="
+rm -rf web/assets
 mkdir -p web/assets
 cp -r assets/* web/assets/
 
