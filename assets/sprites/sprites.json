@@ -1,0 +1,29 @@
+{
+  "wheel": {
+    "file": "assets/sprites/wheel.png",
+    "w": 128,
+    "h": 128,
+    "origin": [
+      64,
+      64
+    ]
+  },
+  "rider": {
+    "file": "assets/sprites/rider.png",
+    "w": 248,
+    "h": 231,
+    "origin": [
+      109,
+      174
+    ]
+  },
+  "cloud": {
+    "file": "assets/sprites/cloud.png",
+    "w": 196,
+    "h": 75,
+    "origin": [
+      -55,
+      -25
+    ]
+  }
+}

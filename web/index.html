@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Pelicans Riding Bicycles: A Feasibility Study — The Field Trials</title>
+<meta name="description" content="The catcave composite trial: a pelican rides a bicycle through five field trials. Bevy + wasm; art, music and strings from the estate's planes.">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #1a1f2e; overflow: hidden; }
+  #gamecanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #load {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: #f6f3ec; color: #1a1f2e;
+    font-family: Georgia, "Times New Roman", serif;
+    transition: opacity .5s ease; z-index: 10;
+  }
+  #load.done { opacity: 0; pointer-events: none; }
+  #load .kicker {
+    font-family: "Courier New", monospace; font-size: 12px;
+    letter-spacing: .18em; text-transform: uppercase; color: #e8622c;
+  }
+  #load h1 { font-size: clamp(22px, 4vw, 40px); margin: 0 12vw; text-align: center; line-height: 1.1; }
+  #load .bar { width: 200px; height: 4px; background: #d8d3c6; }
+  #load .bar i { display: block; height: 100%; width: 0%; background: #e8622c; transition: width .3s; }
+  #sound {
+    position: absolute; top: 10px; right: 12px; z-index: 5;
+    font-family: "Courier New", monospace; font-size: 12px;
+    background: rgba(246,243,236,.85); color: #1a1f2e;
+    border: 1.5px solid #1a1f2e; padding: 4px 10px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<canvas id="gamecanvas"></canvas>
+<button id="sound" type="button">Sound: On</button>
+<div id="load">
+  <p class="kicker">Ornithological Engineering · Report No. 042</p>
+  <h1>Pelicans Riding Bicycles: A Feasibility Study</h1>
+  <div class="bar"><i id="loadbar"></i></div>
+  <p class="kicker" id="loadmsg">CALIBRATING THE BICYCLES…</p>
+</div>
+<script>
+  // the sond plane's tune: the 132 BPM klezmer loop derived from the fixture
+  // artifact. Starts on the first user gesture (browser autoplay policy).
+  const audio = new Audio('assets/audio/pelican-tune-loop.ogg');
+  audio.loop = true;
+  let started = false;
+  let muted = false;
+  function startMusic() {
+    if (started || muted) return;
+    started = true;
+    audio.volume = 0.45;
+    audio.play().catch(() => {});
+  }
+  window.addEventListener('pointerdown', startMusic, { once: false });
+  window.addEventListener('keydown', startMusic, { once: false });
+  document.getElementById('sound').addEventListener('click', (e) => {
+    muted = !muted;
+    audio.muted = muted;
+    e.target.textContent = muted ? 'Sound: Off' : 'Sound: On';
+  });
+
+  // wasm boot. The game signals readiness by setting document.title to
+  // "pelican-ready" (see signal_ready in src/main.rs); a fallback timer and
+  // ?noloader=1 cover headless testing and slow devices.
+  const bar = document.getElementById('loadbar');
+  bar.style.width = '18%';
+  const hideLoader = () => {
+    document.getElementById('load').classList.add('done');
+  };
+  const readyTitle = window.setInterval(() => {
+    if (document.title === 'pelican-ready') {
+      window.clearInterval(readyTitle);
+      bar.style.width = '100%';
+      hideLoader();
+    }
+  }, 200);
+  window.setTimeout(hideLoader, 12000); // fallback: the game runs behind the loader
+  if (new URLSearchParams(location.search).has('noloader')) hideLoader();
+  import('./pelican_game.js')
+    .then((m) => { bar.style.width = '70%'; return m.default(); })
+    .catch((err) => {
+      document.getElementById('loadmsg').textContent = 'BOOT FAILURE: ' + err;
+      console.error(err);
+    });
+</script>
+</body>
+</html>

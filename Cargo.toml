@@ -1,0 +1,53 @@
+[package]
+name = "pelican-game"
+version = "1.0.0"
+edition = "2021"
+description = "Pelicans Riding Bicycles: A Feasibility Study — The Field Trials. The catcave composite trial: a Bevy+wasm game whose content comes from the estate's planes."
+license = "MIT"
+
+[lib]
+name = "pelican_game"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pelican-game"
+path = "src/main.rs"
+
+[features]
+# locale-ja: embed the machine-lane ja bundle (assets/locales/ja.json,
+# produced by tools/localize-machine.py through the kumiki plane)
+locale-ja = []
+
+[dependencies]
+bevy = { version = "0.19.1", default-features = false, features = [
+  "2d",
+  "bevy_ui",
+  "bevy_ui_render",
+  "bevy_text",
+  "bevy_state",
+  "png",
+  "default_font",
+  "webgl2",
+] }
+serde_json = "1"
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+web-sys = { version = "0.3", features = ["Window", "Document"] }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+bevy = { version = "0.19.1", default-features = false, features = [
+  "x11",
+  "wayland",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = "debuginfo"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

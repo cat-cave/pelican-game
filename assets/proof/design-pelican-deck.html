@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pelicans Riding Bicycles: A Feasibility Study</title>
+<style>
+  :root{
+    --ink:#1a1f2e;
+    --paper:#f6f3ec;
+    --accent:#e8622c;
+    --muted:#6b7080;
+    --border:#d8d3c6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    background:var(--ink);
+    color:var(--ink);
+    overflow:hidden;
+  }
+  .deck{position:relative;height:100vh;width:100vw}
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;
+    aspect-ratio:16/9;
+    max-height:100vh;max-width:100vw;
+    margin:auto;
+    padding:6vh 7vw;
+    background:var(--paper);
+    opacity:0;visibility:hidden;
+    transition:opacity .45s ease;
+  }
+  .slide.active{opacity:1;visibility:visible}
+  .slide-inner{margin:auto;width:100%;max-width:1100px}
+
+  .kicker{
+    font-family:"Courier New",monospace;
+    font-size:clamp(12px,1.4vw,16px);
+    letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:2.2vh;
+  }
+  h1{font-size:clamp(36px,6.2vw,84px);line-height:1.04;letter-spacing:-.01em}
+  h2{font-size:clamp(30px,4.4vw,60px);line-height:1.08;margin-bottom:3.5vh}
+  .thesis{
+    margin-top:3.5vh;
+    font-size:clamp(18px,2vw,26px);
+    color:var(--muted);font-style:italic;max-width:34em;
+  }
+  .rule{width:72px;border:0;border-top:3px solid var(--accent);margin:4vh 0 0}
+
+  ul.points{list-style:none;margin-top:1vh}
+  ul.points li{
+    display:flex;gap:1.1em;align-items:baseline;
+    font-size:clamp(19px,2.1vw,28px);
+    padding:2.1vh 0;border-bottom:1px solid var(--border);
+  }
+  ul.points li:last-child{border-bottom:0}
+  ul.points .num{
+    font-family:"Courier New",monospace;
+    font-size:.72em;color:var(--accent);flex:0 0 2ch;
+  }
+  ul.points strong{font-weight:700}
+
+  .pageno{
+    position:absolute;bottom:4.5vh;right:7vw;
+    font-family:"Courier New",monospace;
+    font-size:14px;color:var(--muted);letter-spacing:.1em;
+  }
+  .footer-mark{
+    position:absolute;bottom:4.5vh;left:7vw;
+    font-family:"Courier New",monospace;
+    font-size:13px;color:var(--muted);letter-spacing:.08em;
+  }
+  .dots{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    display:flex;gap:10px;z-index:10;
+  }
+  .dot{
+    width:34px;height:34px;border:0;border-radius:50%;
+    background:transparent;cursor:pointer;position:relative;
+  }
+  .dot::after{
+    content:"";position:absolute;inset:11px;border-radius:50%;
+    background:rgba(246,243,236,.35);transition:background .2s;
+  }
+  .dot.active::after,.dot:hover::after{background:var(--accent)}
+  .dot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="deck" data-od-id="pelican-deck">
+
+  <section class="slide active" data-od-id="slide-title" aria-label="Title slide">
+    <div class="slide-inner">
+      <p class="kicker">Ornithological Engineering · Report No. 042</p>
+      <h1>Pelicans Riding Bicycles: A&nbsp;Feasibility Study</h1>
+      <p class="thesis">Because if a fish can fit in that pouch, a pedal stroke is frankly beneath us.</p>
+      <hr class="rule">
+    </div>
+    <p class="footer-mark">Institute for Improbable Transport</p>
+    <p class="pageno">01 / 03</p>
+  </section>
+
+  <section class="slide" data-od-id="slide-mount-problem" aria-label="The Mount Problem">
+    <div class="slide-inner">
+      <p class="kicker">Section 01</p>
+      <h2>The Mount Problem</h2>
+      <ul class="points">
+        <li><span class="num">a.</span><span><strong>Anatomy check:</strong> wings built for soaring, not handlebars — but a 3 m wingspan doubles as excellent built-in stabilization at speed.</span></li>
+        <li><span class="num">b.</span><span><strong>Geometry check:</strong> standard frame sizing assumes legs, not legs <em>plus</em> a webbed semi-paddle; seat height must accommodate a generous undercarriage pouch.</span></li>
+        <li><span class="num">c.</span><span><strong>The compromise:</strong> a step-through frame with dropped bars keeps the beak clear of the stem — mounting achieved in under four flap-assisted seconds.</span></li>
+      </ul>
+    </div>
+    <p class="footer-mark">Pelicans × Bicycles</p>
+    <p class="pageno">02 / 03</p>
+  </section>
+
+  <section class="slide" data-od-id="slide-verdict" aria-label="Verdict: Feasible">
+    <div class="slide-inner">
+      <p class="kicker">Section 02 · Findings</p>
+      <h2>Verdict: Feasible</h2>
+      <ul class="points">
+        <li><span class="num">1.</span><span><strong>Balance:</strong> solved — birds already manage on one leg; two wheels plus a pelican is statistically a luxury.</span></li>
+        <li><span class="num">2.</span><span><strong>Propulsion:</strong> webbed feet, meet clipless pedals. Nature has been running the beta test for millennia.</span></li>
+        <li><span class="num">3.</span><span><strong>Cargo capacity:</strong> the pouch remains the industry's only saddle bag that doubles as carry-on luggage.</span></li>
+      </ul>
+      <hr class="rule">
+      <p class="thesis">Recommendation: fund the pilot program immediately. The pelicans are ready.</p>
+    </div>
+    <p class="footer-mark">Institute for Improbable Transport</p>
+    <p class="pageno">03 / 03</p>
+  </section>
+
+</div>
+
+<div class="dots" role="tablist" aria-label="Slide navigation">
+  <button class="dot active" data-goto="0" role="tab" aria-label="Go to slide 1"></button>
+  <button class="dot" data-goto="1" role="tab" aria-label="Go to slide 2"></button>
+  <button class="dot" data-goto="2" role="tab" aria-label="Go to slide 3"></button>
+</div>
+
+<script>
+(function(){
+  var slides = document.querySelectorAll('.slide');
+  var dots = document.querySelectorAll('.dot');
+  var current = 0;
+
+  function show(i){
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function(s, idx){ s.classList.toggle('active', idx === current); });
+    dots.forEach(function(d, idx){ d.classList.toggle('active', idx === current); });
+    try { localStorage.setItem('pelican-deck-slide', current); } catch(e){}
+  }
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') show(current + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') show(current - 1);
+  });
+
+  slides.forEach(function(s, idx){
+    s.addEventListener('click', function(e){
+      if (e.target.closest('button')) return;
+      show(current + 1);
+    });
+  });
+
+  dots.forEach(function(d){
+    d.addEventListener('click', function(){ show(parseInt(d.dataset.goto, 10)); });
+  });
+
+  var saved = 0;
+  try { saved = parseInt(localStorage.getItem('pelican-deck-slide'), 10) || 0; } catch(e){}
+  show(saved);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT
+/target
+/web/pelican_game.js
+/web/pelican_game_bg.wasm
+/web/pkg
+/web/assets
+nohup.out
+shots/
+
+.wrangler/
+manifest/

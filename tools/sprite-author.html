@@ -1,0 +1,153 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+body { margin: 0; background: #ff00ff; }
+canvas { display: block; }
+</style></head>
+<body>
+<!-- sprite authoring page: draws the pelican rider at 4x on magenta for
+     chroma-key extraction. Loaded by tools/make-sprites.sh via headless
+     chromium; the draw code is the palette-faithful rider from the design
+     reference (pixd 12-color palette). -->
+<canvas id="c" width="512" height="512"></canvas>
+<script>
+const PAL = {
+  white: '#f8f6ee', white2: '#f2f8fc',
+  ink: '#1c1c22', ink2: '#18161c',
+  red: '#d23a32',
+  steel: '#b2b6be', steel2: '#c4c8c4', steel3: '#d8dad4',
+  orange: '#e27624', yellow: '#f6ac2e',
+};
+const part = new URLSearchParams(location.search).get('part') || 'rider';
+const S = 4; // supersample scale
+const cv = document.getElementById('c');
+if (part === 'wheel') { cv.width = 128; cv.height = 128; }
+else if (part === 'cloud') { cv.width = 320; cv.height = 128; }
+else { cv.width = 512; cv.height = 384; }
+const ctx = cv.getContext('2d');
+
+function drawWheel() {
+  ctx.save();
+  ctx.translate(64, 64);
+  ctx.scale(S, S);
+  ctx.strokeStyle = PAL.ink; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(0, 0, 13.5, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = PAL.steel; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = PAL.steel2; ctx.lineWidth = 1.5;
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(-Math.cos(a) * 9, -Math.sin(a) * 9);
+    ctx.lineTo(Math.cos(a) * 9, Math.sin(a) * 9);
+    ctx.stroke();
+  }
+  ctx.fillStyle = PAL.orange;
+  ctx.beginPath(); ctx.arc(0, 0, 2.6, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCloud() {
+  const blobs = [[70, 80, 46], [130, 62, 38], [190, 76, 42], [245, 86, 32], [110, 92, 36], [170, 94, 34]];
+  ctx.fillStyle = '#f2f8fc';
+  for (const [x, y, r] of blobs) {
+    ctx.beginPath(); ctx.arc(x * 0.8 + 32, y * 0.72 + 8, r * 0.72, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawRider() {
+  // chassis origin at canvas (256, 220) — offset recorded in sprites.json
+  ctx.save();
+  ctx.translate(256, 220);
+  ctx.scale(S, S);
+  // step-through frame
+  ctx.strokeStyle = PAL.red; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-25, 12);
+  ctx.quadraticCurveTo(-10, -8, 6, -6);
+  ctx.moveTo(6, -6);
+  ctx.lineTo(25, 12);
+  ctx.moveTo(-25, 12);
+  ctx.lineTo(-6, 4);
+  ctx.moveTo(6, -6);
+  ctx.lineTo(0, -8);
+  ctx.stroke();
+  // handlebar
+  ctx.beginPath();
+  ctx.moveTo(25, 12);
+  ctx.lineTo(20, -10);
+  ctx.moveTo(20, -10);
+  ctx.quadraticCurveTo(26, -14, 30, -9);
+  ctx.stroke();
+  // saddle perch
+  ctx.fillStyle = PAL.ink2;
+  ctx.fillRect(-6, -12, 12, 4);
+  // crank + pedals
+  const crank = 0.7;
+  ctx.strokeStyle = PAL.steel3; ctx.lineWidth = 3;
+  for (const side of [0, Math.PI]) {
+    const ca = crank + side;
+    const px = -6 + Math.cos(ca) * 7;
+    const py = 4 + Math.sin(ca) * 7;
+    ctx.beginPath(); ctx.moveTo(-6, 4); ctx.lineTo(px, py); ctx.stroke();
+    ctx.fillStyle = PAL.ink2;
+    ctx.fillRect(px - 3.4, py - 1.8, 6.8, 3.6);
+  }
+  // THE PELICAN
+  ctx.save();
+  ctx.translate(-2, -14);
+  ctx.fillStyle = PAL.white;
+  ctx.beginPath();
+  ctx.moveTo(-12, 2);
+  ctx.quadraticCurveTo(-24, -4, -21, -10);
+  ctx.quadraticCurveTo(-14, -6, -10, -4);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 14, 10.5, -0.12, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = PAL.steel3; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.fillStyle = PAL.white;
+  ctx.beginPath();
+  ctx.moveTo(6, -4);
+  ctx.quadraticCurveTo(16, -12, 14, -22);
+  ctx.lineTo(19, -21);
+  ctx.quadraticCurveTo(20, -10, 11, -2);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(17, -24, 6.5, 5.5, 0.25, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = PAL.orange;
+  ctx.beginPath();
+  ctx.moveTo(22, -26);
+  ctx.lineTo(37, -22.5);
+  ctx.lineTo(22, -19);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = PAL.yellow;
+  ctx.beginPath();
+  ctx.moveTo(22, -22.6);
+  ctx.lineTo(33, -22.2);
+  ctx.lineTo(22, -21);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = PAL.ink;
+  ctx.beginPath(); ctx.arc(18.6, -25.6, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = PAL.white2;
+  ctx.strokeStyle = PAL.steel3; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-4, -4);
+  ctx.quadraticCurveTo(8, 2, 20, -9);
+  ctx.quadraticCurveTo(8, -7, -2, -1);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = PAL.orange;
+  const fa = crank;
+  const footX = -6 + Math.cos(fa) * 7;
+  const footY = 4 + Math.sin(fa) * 7;
+  ctx.beginPath();
+  ctx.moveTo(footX - 4, footY - 2);
+  ctx.lineTo(footX + 5, footY - 1);
+  ctx.lineTo(footX + 3, footY + 2);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+if (part === 'wheel') drawWheel(); else if (part === 'cloud') drawCloud(); else drawRider();
+document.title = 'done';
+</script>
+</body></html>
