@@ -103,8 +103,9 @@ jobs:
               | tar xz --strip-components=1 -C "$CACHE/bin" --wildcards '*/wasm-bindgen'
           fi
           if [ ! -x "$CACHE/bin/wasm-opt" ]; then
+            rm -rf "$CACHE/bin/bin"
             curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_121/binaryen-version_121-x86_64-linux.tar.gz \
-              | tar xz --strip-components=1 -C "$CACHE/bin" --wildcards '*/wasm-opt'
+              | tar xz --strip-components=2 -C "$CACHE/bin" --wildcards '*/bin/wasm-opt'
           fi
           "$CACHE/bin/wasm-bindgen" --version
           "$CACHE/bin/wasm-opt" --version
