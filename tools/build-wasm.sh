@@ -8,7 +8,10 @@ source "$HERE/tools/env.sh"
 
 cd "$HERE"
 echo "== cargo build (wasm32-unknown-unknown, release) =="
-cargo build --release --target wasm32-unknown-unknown --bin pelican-game
+# locale-ja embeds the machine-lane ja bundle (assets/locales/ja.json via
+# tools/localize-machine.py) — the game ships bilingual; without the feature
+# the toggle compiles out (HAS_JA=false) and the bundle is dead bytes.
+cargo build --release --target wasm32-unknown-unknown --bin pelican-game --features locale-ja
 
 echo "== wasm-bindgen =="
 rm -rf web/pkg
