@@ -15,6 +15,15 @@ npx -y wrangler@latest deploy
 
 echo "== verify =="
 sleep 6
-curl -s -o /dev/null -w "https://pelican.catcave.dev -> %{http_code}\n" -m 30 "https://pelican.catcave.dev"
-curl -s -o /dev/null -w "wasm -> %{http_code} (%{size_download} bytes)\n" -m 60 "https://pelican.catcave.dev/pelican_game_bg.wasm"
-curl -s -m 30 "https://pelican.catcave.dev/assets/locales/ja.json" | python3 -c 'import json,sys; print("ja.json live:", json.load(sys.stdin)["game.title"])'
+# The Access app (lockdown-pelican.catcave.dev) fronts the custom domain:
+# anonymous requests 302 to the Access login. That redirect IS the "live and
+# locked" signal. (200 would mean Access came off; anything else is a problem.)
+loc=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" -m 30 "https://pelican.catcave.dev")
+echo "https://pelican.catcave.dev -> $loc"
+case "$loc" in
+  *"cloudflareaccess.com"*) echo "  live + Access-locked (intended)" ;;
+  "200 "*) echo "  WARNING: live but NOT behind Access" ;;
+  *) echo "  UNEXPECTED response" ;;
+esac
+# deployed bytes are content-hashed by wrangler; compare against web/ locally:
+sha256sum web/pelican_game_bg.wasm web/pelican_game.js web/index.html | sed 's/^/  /'

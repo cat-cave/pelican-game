@@ -61,6 +61,18 @@ fn simtest_system(
     }
 }
 
+/// asset root for AssetPlugin::file_path.
+/// wasm: Bevy's HttpWasmAssetReader fetches "<file_path>/<asset>" as a URL
+/// relative to the page origin, so it must be the deployed `assets/` dir.
+/// native: absolute path — robust under CARGO_TARGET_DIR relocation.
+fn asset_root() -> String {
+    if cfg!(target_family = "wasm") {
+        "assets".to_string()
+    } else {
+        concat!(env!("CARGO_MANIFEST_DIR"), "/assets").to_string()
+    }
+}
+
 fn main() {
     #[cfg(target_family = "wasm")]
     console_error_panic_hook::set_once();
@@ -82,8 +94,11 @@ fn main() {
         .set(ImagePlugin::default_nearest())
         .set(AssetPlugin {
             mode: bevy::asset::AssetMode::Unprocessed,
-            // absolute path: robust under CARGO_TARGET_DIR relocation
-            file_path: concat!(env!("CARGO_MANIFEST_DIR"), "/assets").into(),
+            // wasm: HttpWasmAssetReader fetches "<file_path>/<asset>" relative
+            // to the page origin — it MUST be a relative URL, not a build-host
+            // absolute path (the old CARGO_MANIFEST_DIR path 404'd every asset
+            // and left the game with no sprites and no fonts).
+            file_path: asset_root(),
             ..default()
         });
 
@@ -95,7 +110,7 @@ fn main() {
                 std::time::Duration::from_secs_f64(1.0 / 60.0),
             )),
             bevy::asset::AssetPlugin {
-                file_path: concat!(env!("CARGO_MANIFEST_DIR"), "/assets").into(),
+                file_path: asset_root(),
                 mode: bevy::asset::AssetMode::Unprocessed,
                 ..default()
             },
