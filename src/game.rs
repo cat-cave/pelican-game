@@ -135,6 +135,25 @@ pub struct Particles {
 #[derive(Resource)]
 pub struct Rng(pub u64);
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The control check's gameplay lane asserts
+    /// `document.documentElement.dataset.pelicanState === 'Playing'` (wasm
+    /// shell bridge in main.rs). This pins the exact published strings —
+    /// renaming a variant must not silently republish a different word.
+    #[test]
+    fn shell_state_names_are_the_ci_contract() {
+        assert_eq!(shell_state_name(&AppState::Title), "Title");
+        assert_eq!(shell_state_name(&AppState::Intro), "Intro");
+        assert_eq!(shell_state_name(&AppState::Playing), "Playing");
+        assert_eq!(shell_state_name(&AppState::Crashed), "Crashed");
+        assert_eq!(shell_state_name(&AppState::Cleared), "Cleared");
+        assert_eq!(shell_state_name(&AppState::AllClear), "AllClear");
+    }
+}
+
 impl Rng {
     pub fn next_f32(&mut self) -> f32 {
         self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
@@ -297,6 +316,21 @@ pub fn keyboard_system(mut input: ResMut<InputRes>, keys: Res<ButtonInput<KeyCod
         if let Some(s) = game.advance_level() {
             next.set(s);
         }
+    }
+}
+
+/// DOM contract for the wasm shell bridge (main.rs `shell_bridge`): the exact
+/// string published as `<html data-pelican-state="…">` and consumed by the
+/// control check's gameplay lane. The Debug impl is NOT the contract — this
+/// mapping is (pinned by test; CI predicates depend on the exact strings).
+pub fn shell_state_name(s: &AppState) -> &'static str {
+    match s {
+        AppState::Title => "Title",
+        AppState::Intro => "Intro",
+        AppState::Playing => "Playing",
+        AppState::Crashed => "Crashed",
+        AppState::Cleared => "Cleared",
+        AppState::AllClear => "AllClear",
     }
 }
 

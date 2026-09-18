@@ -15,6 +15,20 @@
 # exit 1 with the void screenshot + the 404 list — evidence in the vault,
 # agent-ops/proofs/pelican-20260915/sabotage-proof-*.
 #
+# Two lanes, one wasm build:
+#   title     the shipped check: boot to the title screen, gate readiness,
+#             loader handshake (its #load overlay actually dismissed),
+#             canvas pixel diversity, console/network cleanliness.
+#   trial     the 2026-09-18 strengthening: boot with ?autostart=1 (the
+#             wasm shell bridge drops straight into trial 1 — same code the
+#             snap/simtest modes use) and gate that we are IN THE TRIAL
+#             (<html data-pelican-state> is Intro/Playing/Crashed, never
+#             Title) with the trial world actually drawn (canvas-stats on
+#             the gameplay frame: the trial measures ~128 distinct colors
+#             vs the title's 72; the void measured 7). Catches the class
+#             the title lane cannot: title screen renders while the level
+#             spawn/world render/HUD is broken.
+#
 # The tool is cat-cave/visual-verify (public; pinned by commit below — bump
 # deliberately). Chromium comes from its provision.sh ladder: the runner
 # containers have no chromium and no nix but share one podman socket, so the
@@ -127,7 +141,7 @@ jobs:
             echo "VV_CONTAINER_NAME=${VV_CONTAINER_NAME:-}"
           } >> "$GITHUB_ENV"
 
-      - name: Control check — the game must render, not just launch
+      - name: Control check — the game must render, not just launch (title lane)
         run: |
           set -euo pipefail
           CONNECT_ARGS=()
@@ -138,27 +152,62 @@ jobs:
             --settle-ms 9000 --timeout-ms 120000 \
             --expect-title 'pelican-ready' \
             --expect-selector 'canvas#gamecanvas' \
+            --expect-js "document.getElementById('load').classList.contains('done')" \
             --canvas-stats 'canvas#gamecanvas:40:92' \
             --fail-on-http-4xx \
-            --allow-http-4xx '\.meta$' \
+            --allow-http-4xx 'assets/.*\.meta$' \
             --allow-http-4xx 'favicon\.ico$' \
             --out vv-artifacts
           # Gates: zero console errors (incl. Bevy's %cERROR-styled logs),
           # zero failed requests (.meta/favicon probes excepted — they 404 in
-          # production too), the game signals readiness, and the canvas
-          # actually DREW the title screen: >= 40 distinct colors in the
-          # canvas rect. The pre-fix void measured 7; the real title screen
-          # measures 73.
+          # production too), the game signals readiness, the loader handshake
+          # actually dismissed its overlay (the title-poll path in index.html
+          # ran — a stuck loader covering the canvas fails here), and the
+          # canvas actually DREW the title screen: >= 40 distinct colors in
+          # the canvas rect. The pre-fix void measured 7; the real title
+          # screen measures 72-73.
+
+      - name: Control check — the trial must render (gameplay lane)
+        run: |
+          set -euo pipefail
+          CONNECT_ARGS=()
+          if [ -n "${VV_CONNECT:-}" ]; then CONNECT_ARGS=(--connect "$VV_CONNECT"); fi
+          node visual-verify/visual-verify.mjs "${CONNECT_ARGS[@]}" \
+            --serve-dir web/ --serve-port 8923 \
+            --url "http://127.0.0.1:8923/?noloader=1&autostart=1" \
+            --ready-js "document.title === 'pelican-ready'" \
+            --settle-ms 12000 --timeout-ms 120000 \
+            --expect-title 'pelican-ready' \
+            --expect-selector 'canvas#gamecanvas' \
+            --expect-js "['Intro','Playing','Crashed'].includes(document.documentElement.dataset.pelicanState)" \
+            --canvas-stats 'canvas#gamecanvas:40:92' \
+            --fail-on-http-4xx \
+            --allow-http-4xx 'assets/.*\.meta$' \
+            --allow-http-4xx 'favicon\.ico$' \
+            --out vv-artifacts-gameplay
+          # ?autostart=1 is the wasm shell bridge (src/main.rs ShellBridge,
+          # the sibling of signal_ready): it starts trial 1 exactly like the
+          # Play button — same start_level(0) + Intro the snap/simtest modes
+          # use — and publishes the app state as <html data-pelican-state>.
+          # Gates: the game is IN THE TRIAL (state Intro/Playing/Crashed —
+          # never Title; which of the three depends on render frame rate,
+          # the Intro timer advances one physics SUBSTEP per rendered frame)
+          # and the trial frame DREW: >= 40 distinct colors (measured: intro/
+          # gameplay frame 128, title 72, the pre-fix void 7; top color 49%
+          # vs the void's ~100%). A title screen that renders while the
+          # level spawn or world render is broken fails this lane.
 
       - name: Stop the chromium container (container leg only)
         if: always() && env.VV_CONTAINER_NAME != ''
         run: docker rm -f "$VV_CONTAINER_NAME" >/dev/null 2>&1 || true
 
-      - name: Upload the screenshot of record (part of the PR record)
+      - name: Upload the screenshots of record (part of the PR record)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: control-check-${{ github.sha }}
-          path: vv-artifacts/
+          path: |
+            vv-artifacts/
+            vv-artifacts-gameplay/
           retention-days: 30
           if-no-files-found: warn

@@ -25,6 +25,57 @@ fn parse_snap() -> Option<Snap> {
     let i = args.iter().position(|a| a == "--snap")?;
     Some(Snap { path: args.get(i + 1)?.clone(), at: 6.0, t: 0.0, shot: false })
 }
+
+/// wasm-only shell bridge for the control check (the sibling of signal_ready
+/// and the shell's ?noloader=1 — headless verification plumbing, never
+/// gameplay surface, never compiled into native builds):
+///   - publishes AppState to the DOM as `<html data-pelican-state="…">` so
+///     the gameplay lane can assert WHERE the game is, not just that pixels
+///     exist (the title screen and a void can both be "colorful");
+///   - honors `?autostart=1`: drop straight into trial 1 exactly like the
+///     Play button (same code the snap/simtest modes use), so the check can
+///     prove the TRIAL renders without trusted-input roulette on button
+///     coordinates.
+#[cfg(target_family = "wasm")]
+#[derive(Resource, Default)]
+struct ShellBridge {
+    autostart: bool,
+    started: bool,
+    prev: Option<game::AppState>,
+}
+
+#[cfg(target_family = "wasm")]
+fn shell_bridge(
+    mut bridge: ResMut<ShellBridge>,
+    state: Res<State<game::AppState>>,
+    mut next: ResMut<NextState<game::AppState>>,
+    mut game: ResMut<game::GameRes>,
+) {
+    let s = state.get().clone();
+    if bridge.prev.as_ref() != Some(&s) {
+        bridge.prev = Some(s.clone());
+        let name = game::shell_state_name(&s);
+        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+            if let Some(root) = doc.document_element() {
+                let _ = root.set_attribute("data-pelican-state", name);
+            }
+        }
+    }
+    if bridge.autostart && !bridge.started && s == game::AppState::Title {
+        bridge.started = true;
+        game.total = 0;
+        game.start_level(0);
+        next.set(game::AppState::Intro);
+    }
+}
+
+/// wasm: read ?autostart from the page URL (once, at startup).
+#[cfg(target_family = "wasm")]
+fn shell_wants_autostart() -> bool {
+    web_sys::window()
+        .and_then(|w| w.location().search().ok())
+        .is_some_and(|q| q.contains("autostart"))
+}
 #[derive(Resource)]
 struct SimTest {
     start: std::time::Instant,
@@ -136,6 +187,9 @@ fn main() {
     // software-render friendly (headless CI / llvmpipe boxes)
     app.insert_resource(ClearColor(bevy::color::Color::srgb(0.588, 0.784, 0.882)));
 
+    #[cfg(target_family = "wasm")]
+    app.insert_resource(ShellBridge { autostart: shell_wants_autostart(), ..Default::default() });
+
     app.init_state::<game::AppState>()
         .init_resource::<game::GameRes>()
         .init_resource::<game::InputRes>()
@@ -163,6 +217,9 @@ fn main() {
         )
             .chain(),
     );
+
+    #[cfg(target_family = "wasm")]
+    app.add_systems(Update, shell_bridge);
 
     app.run();
 }
